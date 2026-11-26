@@ -227,23 +227,25 @@ export default async function JobPage({ params, searchParams }: { params: Promis
           {job.status === "published" && (
             <article className="card">
               <h3>Apply</h3>
-              {!user && (
-                <div style={{ display: "grid", gap: "0.6rem" }}>
-                  <p className="muted">Only a registered candidate can apply.</p>
-                  <Link className="btn" href="/register/candidate" style={{ width: "100%" }}>Create a candidate account</Link>
-                  <Link className="btn ghost" href={`/login?next=/jobs/${job.id}`} style={{ width: "100%" }}>Sign in</Link>
-                </div>
-              )}
-              {user && user.role !== "candidate" && <p className="muted">Applications are submitted from candidate accounts.</p>}
-              {user?.role === "candidate" && user.status !== "active" && <p>Your account must be approved before you can apply.</p>}
-              {user?.role === "candidate" && user.status === "active" && !profile?.cv_path && <p><Link href="/candidate/cv">Upload a CV</Link> before applying.</p>}
-              {user?.role === "candidate" && user.status === "active" && profile?.cv_path && (
-                <form action={applyAction} style={{ display: "grid", gap: "0.7rem" }}>
+              {user?.role === "candidate" && user.status === "active" && profile?.cv_path ? (
+                <form action={applyAction} style={{ display: "grid", gap: "0.7rem", marginTop: "0.8rem" }}>
                   <input type="hidden" name="jobId" value={job.id} />
                   <p className="muted">Your saved CV, {profile.cv_original_name}, will be attached.</p>
                   <label>Note to the hiring team<textarea name="note" placeholder="Optional" /></label>
                   <SubmitButton>Apply for this job</SubmitButton>
                 </form>
+              ) : (
+                <div style={{ display: "grid", gap: "0.7rem", marginTop: "0.8rem" }}>
+                  <p className="muted">Only a registered candidate can apply.</p>
+                  {user?.role === "candidate" && user.status !== "active" ? (
+                    <Link className="btn" href="/candidate">Apply for this job</Link>
+                  ) : user?.role === "candidate" && !profile?.cv_path ? (
+                    <Link className="btn" href="/candidate/cv">Apply for this job</Link>
+                  ) : (
+                    <Link className="btn" href="/register/candidate">Apply for this job</Link>
+                  )}
+                  {!user ? <Link className="btn ghost" href={`/login?next=/jobs/${job.id}`}>Sign in</Link> : null}
+                </div>
               )}
             </article>
           )}
