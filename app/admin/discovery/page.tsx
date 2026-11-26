@@ -44,7 +44,7 @@ export default async function DiscoveryPage({ searchParams }: { searchParams: Pr
       </div>
       <form action={discoveryControlAction} className="card" style={{ marginTop: "1rem", display: "grid", gap: "0.8rem" }}>
         <h3>Discovery controls</h3>
-        <p className="muted">Scheduled search is {settings.running ? "running" : "paused"}. A vacancy is published only when the company has an email address. Each registered candidate is then applied to published roles that match their career field and country. Sources are public job APIs. Company websites are opened only when robots.txt allows, and only a few per run.</p>
+        <p className="muted">Scheduled search is {settings.running ? "running" : "paused"}. Vacancies found in South Africa, Lesotho, Botswana, Eswatini and Zimbabwe are published after each search. Each registered candidate is then applied to published roles that match their career field and country. Sources are public job APIs. Company websites are opened only when robots.txt allows, and only a few per run.</p>
         <label>Keyword for this search<input name="query" defaultValue={settings.defaultQuery} placeholder="Optional, for example nursing or finance" /></label>
         <label>Repeat every (minutes, 15–1440)<input name="interval" type="number" min={15} max={1440} defaultValue={settings.intervalMinutes} /></label>
         <div>

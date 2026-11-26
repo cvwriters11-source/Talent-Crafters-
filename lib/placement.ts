@@ -1,3 +1,4 @@
+import { SOUTHERN_AFRICA } from "./constants";
 import { all, one } from "./db";
 import { deliverEmail, notify } from "./notify";
 import {
@@ -17,6 +18,20 @@ function mailbox(value: string | null | undefined) {
 export function companyHasEmail(company: { hr_email?: string | null; recruitment_email?: string | null; general_email?: string | null } | null | undefined) {
   if (!company) return false;
   return mailbox(company.hr_email) || mailbox(company.recruitment_email) || mailbox(company.general_email);
+}
+
+export function publishRegionalJobs() {
+  const rows = all<{ id: string; country: string }>(
+    `SELECT id, country FROM jobs WHERE status = 'pending' AND country IN (${SOUTHERN_AFRICA.map(() => "?").join(",")})`,
+    [...SOUTHERN_AFRICA],
+  );
+  const published: string[] = [];
+  for (const row of rows) {
+    updateJob(row.id, { status: "published" });
+    audit(null, "auto_publish", "job", row.id, `Published ${row.country} vacancy from discovery`);
+    published.push(row.id);
+  }
+  return published;
 }
 
 export function publishEmailedJobs() {

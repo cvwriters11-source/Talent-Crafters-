@@ -584,8 +584,8 @@ export async function runDiscovery(options: {
       }
     }
 
-    const { applyFittingCandidates, publishEmailedJobs } = await import("./placement");
-    const publishedIds = publishEmailedJobs();
+    const { applyFittingCandidates, publishEmailedJobs, publishRegionalJobs } = await import("./placement");
+    const publishedIds = [...new Set([...publishRegionalJobs(), ...publishEmailedJobs()])];
     const applications = await applyFittingCandidates(publishedIds);
     if (created > 0 || publishedIds.length > 0 || applications > 0) {
       await Promise.all(
@@ -593,7 +593,7 @@ export async function runDiscovery(options: {
           notify({
             userId: admin.id,
             title: "Discovery update",
-            body: `${created} new ${created === 1 ? "vacancy" : "vacancies"} entered the queue. ${publishedIds.length} with a company email ${publishedIds.length === 1 ? "was" : "were"} published. Roles without an email stay unpublished. ${applications} automatic ${applications === 1 ? "application was" : "applications were"} lodged.`,
+            body: `${created} new ${created === 1 ? "vacancy" : "vacancies"} were found. ${publishedIds.length} in South Africa, Lesotho, Botswana, Eswatini, Zimbabwe, or with a company email, ${publishedIds.length === 1 ? "was" : "were"} published. ${applications} automatic ${applications === 1 ? "application was" : "applications were"} lodged.`,
             href: "/admin/discovery",
           }),
         ),
