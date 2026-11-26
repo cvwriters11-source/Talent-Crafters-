@@ -3,8 +3,16 @@ export const SITE_NAME = "Talent Crafters Recruitment";
 export const USER_AGENT =
   "TalentCraftersDiscovery/1.0 (public vacancy aggregation for admin review; +https://talentcrafters.local/contact)";
 
-export const COUNTRIES = [
+export const SOUTHERN_AFRICA = [
   "South Africa",
+  "Lesotho",
+  "Botswana",
+  "Eswatini",
+  "Zimbabwe",
+] as const;
+
+export const COUNTRIES = [
+  ...SOUTHERN_AFRICA,
   "Nigeria",
   "Kenya",
   "Ghana",
