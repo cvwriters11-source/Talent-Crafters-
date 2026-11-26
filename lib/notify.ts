@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import { getCandidate, getUserById, notifyUser } from "./repo";
 
-async function sendEmail(to: string, subject: string, text: string) {
+export async function deliverEmail(to: string, subject: string, text: string) {
   const host = process.env.SMTP_HOST;
   if (!host) return "not_configured";
   try {
@@ -47,7 +47,7 @@ export async function notify(input: { userId: string; title: string; body: strin
   const profile = user.role === "candidate" ? getCandidate(user.id) : undefined;
   const allowEmail = input.email !== false && (profile ? profile.email_opt_in === 1 : true);
   const allowWhatsApp = Boolean(input.whatsapp && profile?.whatsapp_opt_in === 1 && profile.phone);
-  const emailStatus = allowEmail ? await sendEmail(user.email, input.title, `${input.body}\n\nTalent Crafters Recruitment`) : "not_sent";
+  const emailStatus = allowEmail ? await deliverEmail(user.email, input.title, `${input.body}\n\nTalent Crafters Recruitment`) : "not_sent";
   const whatsappStatus = allowWhatsApp && profile?.phone ? await sendWhatsApp(profile.phone, `${input.title}. ${input.body}`) : "not_sent";
   notifyUser({
     userId: input.userId,

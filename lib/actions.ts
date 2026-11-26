@@ -174,6 +174,8 @@ export async function registerCandidateAction(formData: FormData) {
     const message = error instanceof Error ? error.message : "";
     redirect(`/register/candidate?error=${message.includes("5 MB") ? "size" : message.includes("UNIQUE") ? "applied" : "cv"}`);
   }
+  const { applyForCandidate } = await import("./placement");
+  await applyForCandidate(userId);
   audit(userId, "register", "candidate", userId, email);
   for (const admin of adminIds()) {
     await notify({ userId: admin.id, title: "New candidate registration", body: `${fullName} is waiting for account approval and applied for two vacancies.`, href: "/admin/candidates" });

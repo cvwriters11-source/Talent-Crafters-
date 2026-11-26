@@ -474,6 +474,7 @@ export async function runDiscovery(options: {
     });
     found = vacancies.length;
     const companiesToEnrich: { id: string; website: string }[] = [];
+    const createdIds: string[] = [];
     for (const vacancy of vacancies) {
       if (!vacancy.company.trim() || !vacancy.title.trim() || !vacancy.url.trim()) continue;
       const description = htmlToText(vacancy.descriptionHtml || "");
@@ -523,7 +524,7 @@ export async function runDiscovery(options: {
       const requirements = sectionAfter(description, ["requirements", "what you will need", "what you'll need", "your profile"]);
       const qualifications = sectionAfter(description, ["qualifications", "education"]);
       try {
-        createJob({
+        const jobId = createJob({
           company_id: company.id,
           posted_by: null,
           title: vacancy.title.slice(0, 180),
@@ -549,6 +550,7 @@ export async function runDiscovery(options: {
           source_name: vacancy.sourceName,
           status: "pending",
         });
+        createdIds.push(jobId);
         created += 1;
       } catch {
         duplicates += 1;
@@ -582,13 +584,16 @@ export async function runDiscovery(options: {
       }
     }
 
-    if (created > 0) {
+    const { applyFittingCandidates, publishEmailedJobs } = await import("./placement");
+    const publishedIds = publishEmailedJobs();
+    const applications = await applyFittingCandidates(publishedIds);
+    if (created > 0 || publishedIds.length > 0 || applications > 0) {
       await Promise.all(
         adminIds().map((admin) =>
           notify({
             userId: admin.id,
-            title: "New vacancies awaiting review",
-            body: `${created} discovered ${created === 1 ? "vacancy is" : "vacancies are"} in the approval queue.`,
+            title: "Discovery update",
+            body: `${created} new ${created === 1 ? "vacancy" : "vacancies"} entered the queue. ${publishedIds.length} with a company email ${publishedIds.length === 1 ? "was" : "were"} published. Roles without an email stay unpublished. ${applications} automatic ${applications === 1 ? "application was" : "applications were"} lodged.`,
             href: "/admin/discovery",
           }),
         ),
