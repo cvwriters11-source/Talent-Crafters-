@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Flash } from "@/components/Flash";
 import { PublicShell } from "@/components/SiteChrome";
-import { COUNTRIES, EMPLOYMENT_TYPES, EXPERIENCE_LEVELS, SALARY_BANDS, STATUS_LABELS } from "@/lib/constants";
+import { COUNTRIES, EMPLOYMENT_TYPES, EXPERIENCE_LEVELS, SALARY_BANDS } from "@/lib/constants";
 import { listCategories, listIndustries, searchJobs } from "@/lib/repo";
 
 export const metadata: Metadata = { title: "Jobs" };
@@ -90,8 +90,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 <span className="pill">{job.industry}</span>
                 <span className="pill">{job.employment_type}</span>
               </div>
-              <p className="muted">{job.salary_text || "Salary not advertised"}</p>
-              <p className="muted">Closes {job.deadline || "on a date not advertised"} · {STATUS_LABELS[job.experience_level || ""] || job.experience_level}</p>
             </Link>
           ))}
         </div>

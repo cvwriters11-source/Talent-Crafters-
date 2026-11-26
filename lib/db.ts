@@ -77,7 +77,7 @@ function seed(db: DatabaseSync) {
     discovery_json: JSON.stringify({
       running: false,
       intervalMinutes: 360,
-      countries: [],
+      countries: ["South Africa", "Lesotho", "Botswana", "Eswatini", "Zimbabwe"],
       industries: [],
       categories: [],
       lastScheduledAt: null,

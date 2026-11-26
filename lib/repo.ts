@@ -974,6 +974,25 @@ export function discoveryStats() {
   };
 }
 
+export function vacancyActivity() {
+  const count = (clause: string) => one<{ count: number }>(`SELECT COUNT(*) AS count FROM jobs ${clause}`)?.count ?? 0;
+  return {
+    today: count("WHERE date(created_at) = date('now')"),
+    week: count("WHERE datetime(created_at) >= datetime('now', '-6 days')"),
+    month: count("WHERE datetime(created_at) >= datetime('now', 'start of month')"),
+    all: count(""),
+  };
+}
+
+export function recentVacancies(limit = 8) {
+  return all<{ id: string; title: string; status: string; source_name: string | null; created_at: string; company_name: string }>(
+    `SELECT j.id, j.title, j.status, j.source_name, j.created_at, c.name AS company_name
+     FROM jobs j JOIN companies c ON c.id = j.company_id
+     ORDER BY datetime(j.created_at) DESC LIMIT ?`,
+    [limit],
+  );
+}
+
 export function platformStats() {
   return {
     candidates: one<{ count: number }>("SELECT COUNT(*) AS count FROM users WHERE role = 'candidate'")?.count ?? 0,

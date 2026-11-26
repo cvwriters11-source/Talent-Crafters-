@@ -7,9 +7,27 @@ type OpenJob = {
   title: string;
   company_name: string;
   country: string | null;
+  city: string | null;
   location: string | null;
   industry: string | null;
+  category: string | null;
+  employment_type: string | null;
+  experience_level: string | null;
+  salary_text: string | null;
 };
+
+function details(job: OpenJob) {
+  return [
+    ["Company", job.company_name],
+    ["Country", job.country],
+    ["City", job.city || job.location],
+    ["Field", job.industry],
+    ["Category", job.category],
+    ["Employment", job.employment_type],
+    ["Level", job.experience_level],
+    ["Salary", job.salary_text],
+  ].filter((item): item is [string, string] => Boolean(item[1]));
+}
 
 export function JobPick({ jobs }: { jobs: OpenJob[] }) {
   const [picked, setPicked] = useState<string[]>([]);
@@ -36,9 +54,11 @@ export function JobPick({ jobs }: { jobs: OpenJob[] }) {
             />
             <span>
               <strong>{job.title}</strong>
-              <br />
-              {job.company_name} · {job.country || job.location || "Location in the listing"}
-              {job.industry ? ` · ${job.industry}` : ""}
+              <span className="pick-fields">
+                {details(job).map(([label, value]) => (
+                  <span key={label}><em>{label}</em> {value}</span>
+                ))}
+              </span>
             </span>
           </label>
         );

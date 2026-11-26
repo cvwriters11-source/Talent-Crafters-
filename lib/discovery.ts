@@ -1,4 +1,4 @@
-import { ADZUNA_COUNTRY_CODES, USER_AGENT } from "./constants";
+import { ADZUNA_COUNTRY_CODES, SOUTHERN_AFRICA, USER_AGENT } from "./constants";
 import {
   classifyEmail,
   domainsMatch,
@@ -185,6 +185,143 @@ async function fromHimalayas(query: string): Promise<RawVacancy[]> {
     .filter((item): item is RawVacancy => Boolean(item));
 }
 
+const YUBHUB_CITIES: { slug: string; city: string; country: (typeof SOUTHERN_AFRICA)[number] }[] = [
+  { slug: "johannesburg", city: "Johannesburg", country: "South Africa" },
+  { slug: "cape-town", city: "Cape Town", country: "South Africa" },
+  { slug: "pretoria", city: "Pretoria", country: "South Africa" },
+  { slug: "durban", city: "Durban", country: "South Africa" },
+  { slug: "bloemfontein", city: "Bloemfontein", country: "South Africa" },
+  { slug: "gaborone", city: "Gaborone", country: "Botswana" },
+  { slug: "francistown", city: "Francistown", country: "Botswana" },
+  { slug: "maseru", city: "Maseru", country: "Lesotho" },
+  { slug: "mbabane", city: "Mbabane", country: "Eswatini" },
+  { slug: "manzini", city: "Manzini", country: "Eswatini" },
+  { slug: "harare", city: "Harare", country: "Zimbabwe" },
+  { slug: "bulawayo", city: "Bulawayo", country: "Zimbabwe" },
+];
+
+function wantsCountry(countries: string[], country: string) {
+  return countries.length === 0 || countries.includes(country);
+}
+
+function decodeHtml(value: string) {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function fromYubHub(countries: string[]): Promise<RawVacancy[]> {
+  const cities = YUBHUB_CITIES.filter((city) => wantsCountry(countries, city.country));
+  const collected: RawVacancy[] = [];
+  const failures: string[] = [];
+  for (const city of cities) {
+    try {
+      const payload = asRecord(await fetchJson(`https://feeds.yubhub.co/facet/city/${city.slug}.json`));
+      const jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
+      for (const item of jobs.slice(0, 8)) {
+        const job = asRecord(item);
+        const company = text(asRecord(job.hiringOrganization).name);
+        const title = text(job.title);
+        const url = text(job["x-apply-url"]) || text(job.url);
+        if (!company || !title || !url) continue;
+        collected.push({
+          sourceName: "YubHub",
+          company,
+          title,
+          descriptionHtml: `${text(job.description)}\n\nData by YubHub (https://yubhub.co).`,
+          location: `${city.city}, ${city.country}`,
+          url,
+          salaryText: "",
+          employment: text(job["x-job-type"]) || text(job.employmentType),
+          category: text(job.industry) || text(job.occupationalCategory),
+          level: text(job["x-experience-level"]),
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "request failed";
+      if (!message.startsWith("404")) failures.push(`${city.city}: ${message}`);
+    }
+  }
+  if (!collected.length && failures.length) throw new Error(failures.slice(0, 3).join("; "));
+  return collected;
+}
+
+async function fromMyJobMag(countries: string[]): Promise<RawVacancy[]> {
+  if (!wantsCountry(countries, "South Africa")) return [];
+  const response = await fetch("https://www.myjobmag.co.za/", {
+    headers: { Accept: "text/html", "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(15000),
+    redirect: "follow",
+  });
+  if (!response.ok) throw new Error(`${response.status} from MyJobMag`);
+  const html = await response.text();
+  const vacancies: RawVacancy[] = [];
+  for (const block of html.split('<li class="job-info">').slice(1)) {
+    const companyRaw = decodeHtml(block.match(/<h2>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)?.[1] ?? "");
+    const company = companyRaw.replace(/^.*\bat\s+/i, "").trim();
+    const excerpt = decodeHtml(block.match(/class="job-desc">([\s\S]*?)<\/li>/i)?.[1] ?? "");
+    let taken = 0;
+    for (const link of block.matchAll(/href="(\/job\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+      if (vacancies.length >= 24 || taken >= 4) break;
+      const title = decodeHtml(link[2]);
+      if (!company || title.length < 3) continue;
+      vacancies.push({
+        sourceName: "MyJobMag",
+        company,
+        title: title.slice(0, 180),
+        descriptionHtml: excerpt || `${title} at ${company} in South Africa. Open the original advertisement for the full description.`,
+        location: "South Africa",
+        url: `https://www.myjobmag.co.za${link[1]}`,
+        salaryText: "",
+        employment: "",
+        category: "",
+        level: "",
+      });
+      taken += 1;
+    }
+  }
+  return vacancies;
+}
+
+async function fromJobHunters(countries: string[]): Promise<RawVacancy[]> {
+  if (!wantsCountry(countries, "Zimbabwe")) return [];
+  const payload = asRecord(await fetchJson("https://api.jobhunters.co.zw/api/jobs/?page=1"));
+  const results = Array.isArray(payload.results) ? payload.results : [];
+  const collected: RawVacancy[] = [];
+  for (const item of results) {
+    const job = asRecord(item);
+    const expiry = text(job.expiry_date);
+    if (expiry && Date.parse(expiry) < Date.now()) continue;
+    const url = text(job.apply_url);
+    if (!url.startsWith("http")) continue;
+    const location = asRecord(job.location);
+    const employer = asRecord(job.employer);
+    const title = text(job.title);
+    const company = text(employer.company_name);
+    if (!title || !company) continue;
+    const city = text(location.city) || text(location.name) || "Zimbabwe";
+    collected.push({
+      sourceName: "JobHunters",
+      company,
+      title,
+      descriptionHtml: text(job.description) || text(job.requirements),
+      location: `${city}, Zimbabwe`,
+      url,
+      salaryText: "",
+      employment: text(job.employment_type).replaceAll("_", " "),
+      category: text(asRecord(job.sector).name),
+      level: text(job.experience_level).replaceAll("_", " "),
+      deadline: expiry ? expiry.slice(0, 10) : "",
+    });
+  }
+  return collected;
+}
+
 async function fromAdzuna(query: string, countries: string[]): Promise<RawVacancy[]> {
   const appId = process.env.ADZUNA_APP_ID;
   const appKey = process.env.ADZUNA_APP_KEY;
@@ -192,7 +329,7 @@ async function fromAdzuna(query: string, countries: string[]): Promise<RawVacanc
   const codes = (countries.length ? countries : ["South Africa", "United Kingdom"])
     .map((country) => ADZUNA_COUNTRY_CODES[country])
     .filter(Boolean)
-    .slice(0, 2);
+    .slice(0, 4);
   const collected: RawVacancy[] = [];
   for (const code of codes) {
     const url = new URL(`https://api.adzuna.com/v1/api/jobs/${code}/search/1`);
@@ -324,6 +461,9 @@ export async function runDiscovery(options: {
       ["Arbeitnow", () => fromArbeitnow(query)],
       ["Jobicy", () => fromJobicy(query)],
       ["Himalayas", () => fromHimalayas(query)],
+      ["YubHub", () => fromYubHub(filters.countries)],
+      ["MyJobMag", () => fromMyJobMag(filters.countries)],
+      ["JobHunters", () => fromJobHunters(filters.countries)],
       ["Adzuna", () => fromAdzuna(query, filters.countries)],
     ] as const;
     const settled = await Promise.allSettled(sources.map(([, load]) => load()));
@@ -334,6 +474,7 @@ export async function runDiscovery(options: {
     });
     found = vacancies.length;
     const companiesToEnrich: { id: string; website: string }[] = [];
+    const createdIds: string[] = [];
     for (const vacancy of vacancies) {
       if (!vacancy.company.trim() || !vacancy.title.trim() || !vacancy.url.trim()) continue;
       const description = htmlToText(vacancy.descriptionHtml || "");
@@ -383,7 +524,7 @@ export async function runDiscovery(options: {
       const requirements = sectionAfter(description, ["requirements", "what you will need", "what you'll need", "your profile"]);
       const qualifications = sectionAfter(description, ["qualifications", "education"]);
       try {
-        createJob({
+        const jobId = createJob({
           company_id: company.id,
           posted_by: null,
           title: vacancy.title.slice(0, 180),
@@ -409,6 +550,7 @@ export async function runDiscovery(options: {
           source_name: vacancy.sourceName,
           status: "pending",
         });
+        createdIds.push(jobId);
         created += 1;
       } catch {
         duplicates += 1;
@@ -442,13 +584,16 @@ export async function runDiscovery(options: {
       }
     }
 
-    if (created > 0) {
+    const { applyFittingCandidates, publishEmailedJobs, publishRegionalJobs } = await import("./placement");
+    const publishedIds = [...new Set([...publishRegionalJobs(), ...publishEmailedJobs()])];
+    const applications = await applyFittingCandidates(publishedIds);
+    if (created > 0 || publishedIds.length > 0 || applications > 0) {
       await Promise.all(
         adminIds().map((admin) =>
           notify({
             userId: admin.id,
-            title: "New vacancies awaiting review",
-            body: `${created} discovered ${created === 1 ? "vacancy is" : "vacancies are"} in the approval queue.`,
+            title: "Discovery update",
+            body: `${created} new ${created === 1 ? "vacancy" : "vacancies"} were found. ${publishedIds.length} in South Africa, Lesotho, Botswana, Eswatini, Zimbabwe, or with a company email, ${publishedIds.length === 1 ? "was" : "were"} published. ${applications} automatic ${applications === 1 ? "application was" : "applications were"} lodged.`,
             href: "/admin/discovery",
           }),
         ),
