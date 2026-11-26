@@ -299,7 +299,7 @@ export function inferLevel(text: string): string {
 export function parseSalary(text: string): { min: number | null; max: number | null; currency: string | null } {
   if (!text) return { min: null, max: null, currency: null };
   const currency = text.match(/[$£€]|USD|EUR|GBP|ZAR|AUD|CAD|R\b/)?.[0] ?? null;
-  const numbers = [...text.replace(/,/g, "").matchAll(/\d{2,7}(?:\.\d+)?\s*k?/gi)].map((match) => {
+  const numbers = [...text.replace(/,/g, "").matchAll(/\d{1,3}(?:\.\d+)?\s*k|\d{4,7}/gi)].map((match) => {
     const raw = match[0].toLowerCase();
     const value = Number.parseFloat(raw);
     return raw.includes("k") ? Math.round(value * 1000) : Math.round(value);
