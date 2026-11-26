@@ -228,10 +228,12 @@ th { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; colo
 .check-grid { display: flex; flex-wrap: wrap; gap: 0.45rem 0.9rem; }
 .check-grid label { display: flex; align-items: center; gap: 0.35rem; }
 .check-grid input { width: auto; }
-.job-picks { border: 1px solid rgba(94, 224, 216, 0.28); border-radius: 12px; padding: 0.8rem 1rem; display: grid; gap: 0.55rem; max-height: 280px; overflow: auto; }
+.job-picks { border: 1px solid rgba(94, 224, 216, 0.28); border-radius: 12px; padding: 0.8rem 1rem; display: grid; gap: 0.7rem; max-height: 420px; overflow: auto; }
 .job-picks legend { padding: 0 0.3rem; color: #5ee0d8; letter-spacing: 0.04em; }
 .job-picks label { display: grid; grid-template-columns: auto 1fr; gap: 0.65rem; align-items: start; }
 .job-picks input { width: auto; margin-top: 0.25rem; }
+.pick-fields { display: grid; gap: 0.12rem; margin-top: 0.25rem; color: rgba(232, 244, 244, 0.78); font-size: 0.86rem; }
+.pick-fields em { color: #5ee0d8; font-style: normal; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; margin-right: 0.35rem; }
 .split { display: grid; grid-template-columns: 1.4fr 0.8fr; gap: 1rem; }
 .map { width: 100%; min-height: 280px; border: 0; }
 

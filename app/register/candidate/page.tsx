@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function CandidateRegisterPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const query = await searchParams;
   const industries = listIndustries();
-  const openJobs = searchJobs({ pageSize: 40 }, true).rows;
+  const openJobs = searchJobs({ pageSize: 200 }, true).rows;
   return (
     <PublicShell>
       <section className="wrap" style={{ maxWidth: 860, margin: "0 auto" }}>
@@ -53,7 +53,19 @@ export default async function CandidateRegisterPage({ searchParams }: { searchPa
           {openJobs.length < 2 ? (
             <p className="muted">Two published vacancies are needed before registration can include applications.</p>
           ) : (
-            <JobPick jobs={openJobs.map((job) => ({ id: job.id, title: job.title, company_name: job.company_name, country: job.country, location: job.location, industry: job.industry }))} />
+            <JobPick jobs={openJobs.map((job) => ({
+              id: job.id,
+              title: job.title,
+              company_name: job.company_name || "Company",
+              country: job.country,
+              city: job.city,
+              location: job.location,
+              industry: job.industry,
+              category: job.category,
+              employment_type: job.employment_type,
+              experience_level: job.experience_level,
+              salary_text: job.salary_text,
+            }))} />
           )}
           <label>CV upload<input name="cv" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required /></label>
           <label className="check-grid"><span><input type="checkbox" name="whatsapp" value="yes" /> Send optional WhatsApp updates when a provider is configured</span></label>
